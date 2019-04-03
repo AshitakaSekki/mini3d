@@ -1104,13 +1104,13 @@ int main(int argc, char* args[])
     TCHAR *title = _T("Mini3d (software render tutorial) - ")
         _T("Left/Right: rotation, Up/Down: forward/backward, Space: switch state");
 
-    if (screen_init(800, 600, title))
-        return -1;
+    //if (screen_init(800, 600, title))
+    //    return -1;
 
-    device_init(&device, 800, 600, screen_fb);
+    //device_init(&device, 800, 600, screen_fb);
     //camera_at_zero(&device, 3, 0, 0);
 
-    init_texture(&device);
+    //init_texture(&device);
     device.render_state = RENDER_STATE_TEXTURE;
     
     device.cull_mode = CULL_MODE_BACK;
@@ -1121,42 +1121,42 @@ int main(int argc, char* args[])
     device.light.lightColor = { 1.0f,1.0f,1.0f };
     device.light.direction = { 1.0f,-1.0f,0.0f };
 
-    while (screen_exit == 0 && screen_keys[VK_ESCAPE] == 0) {
-        screen_dispatch();
-        device_clear(&device, 1);
-        //camera_at_zero(&device, pos, 0, 0);
-        device.transform.view = camera.getViewMatrix();
-        device.transform.update();
+    //while (screen_exit == 0 && screen_keys[VK_ESCAPE] == 0) {
+    //    screen_dispatch();
+    //    device_clear(&device, 1);
+    //    //camera_at_zero(&device, pos, 0, 0);
+    //    device.transform.view = camera.getViewMatrix();
+    //    device.transform.update();
 
-        //if (screen_keys[VK_UP]) pos -= 0.01f;
-        //if (screen_keys[VK_DOWN]) pos += 0.01f;
-        if (screen_keys[VK_W])
-            camera.processKeyBoard(FORWARD, 0.01f);
-        if (screen_keys[VK_S])
-            camera.processKeyBoard(BACKWARD, 0.01f);
-        if (screen_keys[VK_A])
-            camera.processKeyBoard(LEFT, 0.01f);
-        if (screen_keys[VK_D])
-            camera.processKeyBoard(RIGHT, 0.01f);
+    //    //if (screen_keys[VK_UP]) pos -= 0.01f;
+    //    //if (screen_keys[VK_DOWN]) pos += 0.01f;
+    //    if (screen_keys[VK_W])
+    //        camera.processKeyBoard(FORWARD, 0.01f);
+    //    if (screen_keys[VK_S])
+    //        camera.processKeyBoard(BACKWARD, 0.01f);
+    //    if (screen_keys[VK_A])
+    //        camera.processKeyBoard(LEFT, 0.01f);
+    //    if (screen_keys[VK_D])
+    //        camera.processKeyBoard(RIGHT, 0.01f);
 
-        if (screen_keys[VK_LEFT]) alpha += 0.01f;
-        if (screen_keys[VK_RIGHT]) alpha -= 0.01f;
+    //    if (screen_keys[VK_LEFT]) alpha += 0.01f;
+    //    if (screen_keys[VK_RIGHT]) alpha -= 0.01f;
 
-        if (screen_keys[VK_SPACE]) {
-            if (kbhit == 0) {
-                kbhit = 1;
-                if (++indicator >= 3) indicator = 0;
-                device.render_state = states[indicator];
-            }
-        }
-        else {
-            kbhit = 0;
-        }
+    //    if (screen_keys[VK_SPACE]) {
+    //        if (kbhit == 0) {
+    //            kbhit = 1;
+    //            if (++indicator >= 3) indicator = 0;
+    //            device.render_state = states[indicator];
+    //        }
+    //    }
+    //    else {
+    //        kbhit = 0;
+    //    }
 
-        draw_box(&device, alpha);
-        screen_update();
-        Sleep(1);
-    }
+    //    draw_box(&device, alpha);
+    //    screen_update();
+    //    Sleep(1);
+    //}
 
     // 销毁窗口
     SDL_DestroyWindow(window);

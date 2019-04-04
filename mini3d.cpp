@@ -517,7 +517,7 @@ typedef struct {
 #define CULL_MODE_BACK              4       // 背面剔除
 
 // 设备初始化，fb为外部帧缓存，非 NULL 将引用外部帧缓存（每行 4字节对齐）
-void device_init(device_t *device, int width, int height, void *fb) {
+void device_init(device_t *device, int width, int height, void *fb=nullptr) {
     int need = sizeof(void*) * (height * 2 + 1024) + width * height * 8;
     char *ptr = (char*)malloc(need + 64);
     char *framebuf, *zbuf;
@@ -589,11 +589,17 @@ void device_clear(device_t *device, int mode) {
         for (x = device->width; x > 0; dst++, x--) dst[0] = 0.0f;
     }
 }
+SDL_Renderer* rend = nullptr;			// SDL渲染对象
 
 // 画点
 void device_pixel(device_t *device, int x, int y, IUINT32 color) {
     if (((IUINT32)x) < (IUINT32)device->width && ((IUINT32)y) < (IUINT32)device->height) {
-        device->framebuffer[y][x] = color;
+        //device->framebuffer[y][x] = color;
+
+		SDL_SetRenderDrawBlendMode(rend, SDL_BLENDMODE_BLEND);
+		//SDL_SetRenderDrawColor(rend, 0xff & (color >> 24), 0xff & (color >> 16), 0xff & (color >> 8), 0xff & (color >> 0));
+		SDL_SetRenderDrawColor(rend, 34, 32, 151,255);
+		SDL_RenderDrawPoint(rend, x, y);
     }
 }
 
@@ -1050,7 +1056,9 @@ void init_texture(device_t *device) {
 // SDL2 窗口及图形绘制
 //=====================================================================
 SDL_Window* window = nullptr;           // 主窗口
-SDL_Surface* screenSurface = nullptr;   // surface用于渲染
+SDL_Surface* screenSurface = nullptr;   // 屏幕表面
+
+
 
 // SDL初始化
 bool sdlInit()
@@ -1076,13 +1084,15 @@ bool sdlInit()
         else
         {
             // 创建表面
-            screenSurface = SDL_GetWindowSurface(window);
+            // screenSurface = SDL_GetWindowSurface(window);
             // 填充颜色（全白）
-            SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0xff, 0xff, 0xff));
+            // SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0xff, 0xff, 0xff));
             // 更新窗口表面
-            SDL_UpdateWindowSurface(window);
+            // SDL_UpdateWindowSurface(window);
             // 延迟两秒
-            SDL_Delay(2000);
+            // SDL_Delay(2000);
+
+			rend = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
         }
     }
     return  success;
@@ -1101,20 +1111,15 @@ int main(int argc, char* args[])
     float alpha = 1;
     float pos = 3.5;
 
-    TCHAR *title = _T("Mini3d (software render tutorial) - ")
-        _T("Left/Right: rotation, Up/Down: forward/backward, Space: switch state");
-
-    //if (screen_init(800, 600, title))
-    //    return -1;
-
-    //device_init(&device, 800, 600, screen_fb);
+	//unsigned int(*fb)[800] = new unsigned int*[800];
+     device_init(&device, SCREEN_WIDTH, SCREEN_HEIGHT);
     //camera_at_zero(&device, 3, 0, 0);
 
-    //init_texture(&device);
+    init_texture(&device);
     device.render_state = RENDER_STATE_TEXTURE;
     
     device.cull_mode = CULL_MODE_BACK;
-    //device.cull_mode = CULL_MODE_NONE;
+    device.cull_mode = CULL_MODE_NONE;
     //device.cull_mode = CULL_MODE_FRONT;
 
     device.light.ambiStrength = 0.1f;
@@ -1158,6 +1163,64 @@ int main(int argc, char* args[])
     //    Sleep(1);
     //}
 
+	bool quit = false;
+	SDL_Event event;
+	while (!quit)
+	{
+		while (SDL_PollEvent(&event)!=0)
+		{
+			if (event.type == SDL_QUIT || event.key.keysym.sym == SDLK_ESCAPE)
+			{
+				quit = true;
+			}
+			else if (event.type == SDL_KEYDOWN)
+			{
+				if (event.key.keysym.sym == SDLK_w)
+				{
+					camera.processKeyBoard(FORWARD, 0.01f);
+				}
+				if (event.key.keysym.sym == SDLK_s)
+				{
+					camera.processKeyBoard(BACKWARD, 0.01f);
+				}
+				if (event.key.keysym.sym == SDLK_a)
+				{
+					camera.processKeyBoard(LEFT, 0.01f);
+				}
+				if (event.key.keysym.sym == SDLK_d)
+				{
+					camera.processKeyBoard(RIGHT, 0.01f);
+				}
+				if (event.key.keysym.sym == SDLK_LEFT)
+				{
+					alpha += 0.01f;
+				}
+				if (event.key.keysym.sym == SDLK_RIGHT)
+				{
+					alpha -= 0.01f;
+				}
+
+				if (event.key.keysym.sym == SDLK_SPACE)
+				{
+					if (kbhit == 0) {
+						kbhit = 1;
+						if (++indicator >= 3) indicator = 0;
+						device.render_state = states[indicator];
+					}
+				}
+				else {
+					kbhit = 0;
+				}
+			}
+
+			draw_box(&device, alpha);
+
+			SDL_RenderPresent(rend);
+		}
+	}
+
+	// 清空surface
+	SDL_FreeSurface(screenSurface);
     // 销毁窗口
     SDL_DestroyWindow(window);
     // 退出SDL子系统

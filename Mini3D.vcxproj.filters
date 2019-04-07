@@ -20,6 +20,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="mini3d.cpp" />
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
 </Project>

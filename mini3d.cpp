@@ -487,6 +487,8 @@ void trapezoid_init_scan_line(const trapezoid_t *trap, scanline_t *scanline, int
 //=====================================================================
 typedef struct { float ambiStrength, diffStrength; color_t lightColor; vector_t direction; }light_t;
 
+SDL_Renderer* gRenderer = NULL;			// SDL渲染对象
+
 //=====================================================================
 // 渲染设备
 //=====================================================================
@@ -576,30 +578,42 @@ void device_set_texture(device_t *device, void *bits, long pitch, int w, int h) 
 
 // 清空 framebuffer 和 zbuffer
 void device_clear(device_t *device, int mode) {
+	SDL_RenderClear(gRenderer);
     int y, x, height = device->height;
     for (y = 0; y < device->height; y++) {
         IUINT32 *dst = device->framebuffer[y];
         IUINT32 cc = (height - 1 - y) * 230 / (height - 1);
         cc = (cc << 16) | (cc << 8) | cc;
         if (mode == 0) cc = device->background;
-        for (x = device->width; x > 0; dst++, x--) dst[0] = cc;
+		for (x = device->width; x > 0; dst++, x--)
+		{
+			dst[0] = cc;
+			SDL_SetRenderDrawColor(gRenderer, (UINT8)(0xff & (cc >> 16)), (UINT8)(0xff & (cc>> 8)), ((UINT8)0xff & (cc >> 0)), 0xff);
+			SDL_RenderDrawPoint(gRenderer, x, y);
+		}
     }
     for (y = 0; y < device->height; y++) {
         float *dst = device->zbuffer[y];
         for (x = device->width; x > 0; dst++, x--) dst[0] = 0.0f;
     }
 }
-SDL_Renderer* rend = nullptr;			// SDL渲染对象
+
 
 // 画点
 void device_pixel(device_t *device, int x, int y, IUINT32 color) {
     if (((IUINT32)x) < (IUINT32)device->width && ((IUINT32)y) < (IUINT32)device->height) {
         //device->framebuffer[y][x] = color;
 
-		SDL_SetRenderDrawBlendMode(rend, SDL_BLENDMODE_BLEND);
-		//SDL_SetRenderDrawColor(rend, 0xff & (color >> 24), 0xff & (color >> 16), 0xff & (color >> 8), 0xff & (color >> 0));
-		SDL_SetRenderDrawColor(rend, 34, 32, 151,255);
-		SDL_RenderDrawPoint(rend, x, y);
+		SDL_SetRenderDrawColor(gRenderer, (UINT8)(0xff & (color >> 16)), (UINT8)(0xff & (color >> 8)), ((UINT8)0xff & (color >> 0)), 0xff);
+		if (color > 0)
+		{
+			printf("color: %d\n", color);
+		}
+		//static unsigned char r = 34;
+		//static unsigned char g = 32;
+		//static unsigned char b = 151;
+		//SDL_SetRenderDrawColor(gRenderer, r, g, b, 255);
+		SDL_RenderDrawPoint(gRenderer, x, y);
     }
 }
 
@@ -878,7 +892,7 @@ void device_draw_primitive(device_t *device, const vertex_t *v1,
 //void screen_dispatch(void);							// 处理消息
 //void screen_update(void);							// 显示 FrameBuffer
 //
-//// win32 event handler
+//// win32 e handler
 //static LRESULT screen_events(HWND, UINT, WPARAM, LPARAM);
 //
 //#ifdef _MSC_VER
@@ -1055,8 +1069,7 @@ void init_texture(device_t *device) {
 //=====================================================================
 // SDL2 窗口及图形绘制
 //=====================================================================
-SDL_Window* window = nullptr;           // 主窗口
-SDL_Surface* screenSurface = nullptr;   // 屏幕表面
+SDL_Window* gWindow = NULL;           // 主窗口
 
 
 
@@ -1075,29 +1088,39 @@ bool sdlInit()
     else
     {
         // 创建窗口
-        window = SDL_CreateWindow("Mini3d (software render tutorial) - Left/Right: rotation, Up/Down: forward/backward, Space: switch state", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
-        if (window == NULL)
+        gWindow = SDL_CreateWindow("Mini3d (software render tutorial) - Left/Right: rotation, Up/Down: forward/backward, Space: switch state", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+        if (gWindow == NULL)
         {
             printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
             success = false;
         }
         else
         {
-            // 创建表面
-            // screenSurface = SDL_GetWindowSurface(window);
-            // 填充颜色（全白）
-            // SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0xff, 0xff, 0xff));
-            // 更新窗口表面
-            // SDL_UpdateWindowSurface(window);
-            // 延迟两秒
-            // SDL_Delay(2000);
-
-			rend = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+			gRenderer = SDL_CreateRenderer(gWindow, -1, SDL_RENDERER_ACCELERATED);
+			if (gRenderer == NULL)
+			{
+				printf("Renderer could not be created! SDL Error: %s\n", SDL_GetError());
+				success = false;
+			}
+			else
+			{
+				SDL_SetRenderDrawBlendMode(gRenderer, SDL_BLENDMODE_BLEND);
+				SDL_SetRenderDrawColor(gRenderer, 0xff, 0xff, 0xff, 0xff);
+			}
         }
     }
     return  success;
 }
 
+void close()
+{
+	SDL_DestroyRenderer(gRenderer);
+	SDL_DestroyWindow(gWindow);
+	gRenderer = NULL;
+	gWindow = NULL;
+
+	SDL_Quit();
+}
 
 int main(int argc, char* args[])
 {
@@ -1119,7 +1142,7 @@ int main(int argc, char* args[])
     device.render_state = RENDER_STATE_TEXTURE;
     
     device.cull_mode = CULL_MODE_BACK;
-    device.cull_mode = CULL_MODE_NONE;
+    //device.cull_mode = CULL_MODE_NONE;
     //device.cull_mode = CULL_MODE_FRONT;
 
     device.light.ambiStrength = 0.1f;
@@ -1164,67 +1187,74 @@ int main(int argc, char* args[])
     //}
 
 	bool quit = false;
-	SDL_Event event;
+	SDL_Event e;
 	while (!quit)
 	{
-		while (SDL_PollEvent(&event)!=0)
+		Uint64 start = SDL_GetPerformanceCounter();
+		while (SDL_PollEvent(&e) != 0)
 		{
-			if (event.type == SDL_QUIT || event.key.keysym.sym == SDLK_ESCAPE)
+			if (e.type == SDL_QUIT || e.key.keysym.sym == SDLK_ESCAPE)
 			{
 				quit = true;
 			}
-			else if (event.type == SDL_KEYDOWN)
+			else if (e.type == SDL_KEYDOWN)
 			{
-				if (event.key.keysym.sym == SDLK_w)
+				if (e.key.keysym.sym == SDLK_w)
 				{
 					camera.processKeyBoard(FORWARD, 0.01f);
 				}
-				if (event.key.keysym.sym == SDLK_s)
+				if (e.key.keysym.sym == SDLK_s)
 				{
 					camera.processKeyBoard(BACKWARD, 0.01f);
 				}
-				if (event.key.keysym.sym == SDLK_a)
+				if (e.key.keysym.sym == SDLK_a)
 				{
 					camera.processKeyBoard(LEFT, 0.01f);
 				}
-				if (event.key.keysym.sym == SDLK_d)
+				if (e.key.keysym.sym == SDLK_d)
 				{
 					camera.processKeyBoard(RIGHT, 0.01f);
 				}
-				if (event.key.keysym.sym == SDLK_LEFT)
+				if (e.key.keysym.sym == SDLK_LEFT)
 				{
 					alpha += 0.01f;
 				}
-				if (event.key.keysym.sym == SDLK_RIGHT)
+				if (e.key.keysym.sym == SDLK_RIGHT)
 				{
 					alpha -= 0.01f;
 				}
 
-				if (event.key.keysym.sym == SDLK_SPACE)
+				if (e.key.keysym.sym == SDLK_SPACE)
 				{
+					static int n;
+					printf("space pressed times : %d\n", n++);
 					if (kbhit == 0) {
 						kbhit = 1;
 						if (++indicator >= 3) indicator = 0;
 						device.render_state = states[indicator];
+						//printf("render_state: %d\n", device.render_state);
 					}
 				}
-				else {
-					kbhit = 0;
-				}
 			}
-
-			draw_box(&device, alpha);
-
-			SDL_RenderPresent(rend);
+			else {
+				kbhit = 0;
+			}
 		}
+
+		// 目前查明最消耗性能的地方
+		device_clear(&device, 1);
+		draw_box(&device, alpha);
+
+
+		SDL_RenderPresent(gRenderer);
+
+		Uint64 end = SDL_GetPerformanceCounter();
+		float elapsed = (end - start) / (float)SDL_GetPerformanceFrequency();
+		system("CLS");
+		printf("FPS: %.2f", (1.0f / elapsed));
 	}
 
-	// 清空surface
-	SDL_FreeSurface(screenSurface);
-    // 销毁窗口
-    SDL_DestroyWindow(window);
-    // 退出SDL子系统
-    SDL_Quit();
+	close();
 
     return 0;
 }

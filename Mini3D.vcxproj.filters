@@ -1,22 +1,22 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="MathClasses">
+    <Filter Include="MathLibraries">
       <UniqueIdentifier>{d482315b-a1f4-4817-af00-33ecdffc845a}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="vector_t.h">
-      <Filter>MathClasses</Filter>
+      <Filter>MathLibraries</Filter>
     </ClInclude>
     <ClInclude Include="matrix_t.h">
-      <Filter>MathClasses</Filter>
+      <Filter>MathLibraries</Filter>
     </ClInclude>
     <ClInclude Include="transform_t.h">
-      <Filter>MathClasses</Filter>
+      <Filter>MathLibraries</Filter>
     </ClInclude>
     <ClInclude Include="camera_t.h">
-      <Filter>MathClasses</Filter>
+      <Filter>MathLibraries</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
